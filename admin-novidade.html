@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <title>Admin I.T.P.S</title>
+    
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logoRD">
+            <div class="logo">
+                <a href="index.html"><img class="logo1" src="img/download.jfif" alt=""></a><h1>Dois Talentos</h1></div>
+                <i class="fa-solid fa-bars" id="openmenu" onclick="openmenu()"></i>
+                
+                
+                
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="admin.html">Início</a></li>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="portofolio.html">Eventos</a></li>
+                    <li><a href="biblioteca.php">Biblioteca</a></li>
+                    <li><a href="https://herme07.github.io/hermemarketing.ao/contato.html">Ajuda</a></li>
+                    <a href="login-portal.html" class="btn-entrar">Portal</a>
+                    <div>
+                     <i class="fa-solid fa-circle-xmark" id="close"  onclick="closemenu()" ></i>
+                    </div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+<h2>Adicionar Novidade</h2>
+<form id="novidadeForm">
+    <input type="text" id="titulo" placeholder="Título da novidade" required><br><br>
+    <textarea id="descricao" placeholder="Descrição da novidade" required></textarea><br><br>
+    <input type="file" id="imagem" accept="image/*" required><br><br>
+    <button type="submit">Postar Novidade</button>
+</form>
+<h1>publicações</h1>
+<div id="novidadeList"></div>
+
+<script>
+
+let ul = document.querySelector(`ul`)
+function openmenu(){
+   ul.classList.add(`open`)
+}
+function closemenu(){
+   ul.classList.remove(`open`)
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const novidadeForm = document.getElementById("novidadeForm");
+
+    // Carregar a biblioteca da API do Google
+    function loadGAPI() {
+        return new Promise((resolve) => {
+            const script = document.createElement("script");
+            script.src = "https://apis.google.com/js/api.js";
+            script.onload = resolve;
+            document.body.appendChild(script);
+        });
+    }
+
+    // Autenticar com a API do Google
+    function authenticate() {
+        return gapi.auth2.getAuthInstance()
+            .signIn({ scope: "https://www.googleapis.com/auth/drive.file" })
+            .then(() => console.log("Você está autenticado com o Google!"))
+            .catch(error => console.error("Erro ao autenticar:", error));
+    }
+
+    // Carregar a API do Google Drive
+    function loadDriveAPI() {
+        return gapi.client.load("https://content.googleapis.com/discovery/v1/apis/drive/v3/rest");
+    }
+
+    // Função para salvar a novidade no Google Drive
+    async function salvarNovidade(novaNovidade) {
+        try {
+            const fileMetadata = {
+                'name': novaNovidade.titulo + ".txt",
+                'mimeType': 'text/plain'
+            };
+
+            const media = {
+                mimeType: 'text/plain',
+                body: `Título: ${novaNovidade.titulo}\nDescrição: ${novaNovidade.descricao}\nImagem: ${novaNovidade.imagem}`
+            };
+
+            const response = await gapi.client.drive.files.create({
+                resource: fileMetadata,
+                media: media,
+                fields: 'id'
+            });
+
+            console.log('Arquivo criado com ID:', response.result.id);
+            alert("Novidade postada com sucesso!");
+            novidadeForm.reset();
+        } catch (error) {
+            console.error("Erro ao salvar novidade:", error);
+        }
+    }
+
+    novidadeForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const titulo = document.getElementById("titulo").value;
+        const descricao = document.getElementById("descricao").value;
+        const imagemInput = document.getElementById("imagem");
+
+        // Converte a imagem para base64 se estiver presente
+        let imagemBase64 = '';
+        if (imagemInput.files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagemBase64 = e.target.result;
+                const novaNovidade = { titulo, descricao, imagem: imagemBase64 };
+                salvarNovidade(novaNovidade);
+            };
+            reader.readAsDataURL(imagemInput.files[0]);
+        } else {
+            const novaNovidade = { titulo, descricao, imagem: imagemBase64 };
+            salvarNovidade(novaNovidade);
+        }
+    });
+
+    // Inicializar a API do Google
+    loadGAPI().then(() => {
+        gapi.load("client:auth2", async () => {
+            await gapi.auth2.init({ client_id: 'client_secret_908997947870-q5mlp02q7fejuaf55o099b524mnu3amg.apps.googleusercontent.com' });
+            await authenticate();
+            await loadDriveAPI();
+        });
+    });
+    async function carregarNovidades() {
+    const response = await fetch('YOUR_GOOGLE_DRIVE_API_ENDPOINT_FOR_NOVIDADES');
+    const data = await response.json();
+
+    const novidadeList = document.getElementById("novidadeList");
+    novidadeList.innerHTML = ""; // Limpa a lista atual
+
+    data.forEach(novidade => {
+        const novidadeItem = document.createElement("div");
+        novidadeItem.classList.add("novidade-item");
+        novidadeItem.innerHTML = `
+            <div class="novidade-background" style="background-image: url('${novidade.imagem}');">
+                <h3>${novidade.titulo}</h3>
+                <p>${novidade.descricao}</p>
+            </div>
+        `;
+        novidadeList.appendChild(novidadeItem);
+    });
+}
+document.addEventListener("DOMContentLoaded", () => {
+    carregarNovidades();
+    
+});
+
+
+});
+
+</script>
+
+<script src="https://apis.google.com/js/api.js"></script>
+
+</body>
+</html>

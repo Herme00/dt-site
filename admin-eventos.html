@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <title>Admin I.T.P.S</title>
+    
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logoRD">
+            <div class="logo">
+                <a href="index.html"><img class="logo1" src="img/download.jfif" alt=""></a><h1>Dois Talentos</h1></div>
+                <i class="fa-solid fa-bars" id="openmenu" onclick="openmenu()"></i>
+                
+                
+                
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="admin.html">Início</a></li>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="portofolio.html">Eventos</a></li>
+                    <li><a href="biblioteca.php">Biblioteca</a></li>
+                    <li><a href="https://herme07.github.io/hermemarketing.ao/contato.html">Ajuda</a></li>
+                    <a href="login-portal.html" class="btn-entrar">Portal</a>
+                    <div>
+                     <i class="fa-solid fa-circle-xmark" id="close"  onclick="closemenu()" ></i>
+                    </div>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+<h1>Publicar Eventos</h1>
+<form id="eventoForm">
+    <label for="titulo">Título:</label>
+    <input type="text" id="titulo" required>
+
+    <label for="data">Data:</label>
+    <input type="date" id="data" required>
+
+    <label for="descricao">Descrição:</label>
+    <textarea id="descricao" required></textarea>
+
+    <label for="local">Local:</label>
+    <input type="text" id="local" required>
+
+    <label for="imagem">Imagem:</label>
+    <input type="file" id="imagem" accept="image/*" required>
+
+    <button type="submit">Publicar Evento</button>
+</form>
+
+<h2>Eventos Publicados</h2>
+<div id="lista-eventos"></div>
+
+<script>
+    let ul = document.querySelector(`ul`)
+function openmenu(){
+   ul.classList.add(`open`)
+}
+function closemenu(){
+   ul.classList.remove(`open`)
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const eventoForm = document.getElementById("eventoForm");
+    const listaEventos = document.getElementById("lista-eventos");
+
+    // Carregar a biblioteca da API do Google
+    function loadGAPI() {
+        return new Promise((resolve) => {
+            const script = document.createElement("script");
+            script.src = "https://apis.google.com/js/api.js";
+            script.onload = resolve;
+            document.body.appendChild(script);
+        });
+    }
+
+    // Autenticar com a API do Google
+    function authenticate() {
+        return gapi.auth2.getAuthInstance()
+            .signIn({ scope: "https://www.googleapis.com/auth/drive.file" })
+            .then(() => console.log("Você está autenticado com o Google!"))
+            .catch(error => console.error("Erro ao autenticar:", error));
+    }
+
+    // Carregar a API do Google Drive
+    function loadDriveAPI() {
+        return gapi.client.load("https://content.googleapis.com/discovery/v1/apis/drive/v3/rest");
+    }
+
+    // Função para salvar evento no Google Drive
+    async function salvarEvento(novoEvento) {
+        try {
+            const fileMetadata = {
+                'name': novoEvento.titulo + ".txt",
+                'mimeType': 'text/plain'
+            };
+
+            const media = {
+                mimeType: 'text/plain',
+                body: `Título: ${novoEvento.titulo}\nData: ${novoEvento.data}\nDescrição: ${novoEvento.descricao}\nLocal: ${novoEvento.local}\nImagem: ${novoEvento.imagem}`
+            };
+
+            const response = await gapi.client.drive.files.create({
+                resource: fileMetadata,
+                media: media,
+                fields: 'id'
+            });
+
+            console.log('Arquivo criado com ID:', response.result.id);
+            alert("Evento postado com sucesso!");
+            eventoForm.reset();
+            carregarEventos(); // Recarregar a lista de eventos
+        } catch (error) {
+            console.error("Erro ao salvar evento:", error);
+        }
+    }
+
+    // Função para carregar eventos do Google Drive
+    async function carregarEventos() {
+        // Aqui você pode implementar a lógica para listar os arquivos do Google Drive
+        // Para fins de simplicidade, vamos deixar isso como um comentário
+        // const response = await gapi.client.drive.files.list({ /* opções de listagem */ });
+        // console.log(response);
+    }
+
+    eventoForm.addEventListener("submit", (event) => {
+        event.preventDefault(); // Impede o envio do formulário
+
+        // Captura os valores dos inputs
+        const titulo = document.getElementById("titulo").value;
+        const data = document.getElementById("data").value;
+        const descricao = document.getElementById("descricao").value;
+        const local = document.getElementById("local").value;
+        const imagemInput = document.getElementById("imagem");
+
+        // Lê a imagem como URL base64
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            // Cria um novo objeto evento
+            const novoEvento = {
+                titulo,
+                data,
+                descricao,
+                local,
+                imagem: e.target.result // URL base64 da imagem
+            };
+
+            // Salva o evento no Google Drive
+            await salvarEvento(novoEvento);
+        };
+
+        // Lê o arquivo de imagem
+        reader.readAsDataURL(imagemInput.files[0]);
+    });
+
+    // Inicializar a API do Google
+    loadGAPI().then(() => {
+        gapi.load("client:auth2", async () => {
+            await gapi.auth2.init({ client_id: 'client_secret_908997947870-q5mlp02q7fejuaf55o099b524mnu3amg.apps.googleusercontent.com' });
+            await authenticate();
+            await loadDriveAPI();
+        });
+    });
+
+    async function carregarEventos() {
+    const response = await fetch('YOUR_GOOGLE_DRIVE_API_ENDPOINT_FOR_EVENTOS');
+    const data = await response.json();
+
+    const listaEventos = document.getElementById("lista-eventos");
+    listaEventos.innerHTML = ""; // Limpa a lista atual
+
+    data.forEach(evento => {
+        const eventoItem = document.createElement("div");
+        eventoItem.classList.add("evento-item");
+        eventoItem.innerHTML = `
+            <div class="evento-info">
+                <h3>${evento.titulo}</h3>
+                <p><strong>Data:</strong> ${evento.data}</p>
+                <p><strong>Descrição:</strong> ${evento.descricao}</p>
+                <p><strong>Local:</strong> ${evento.local}</p>
+                <img src="${evento.imagem}" class="evento-imagem" alt="Imagem do evento">
+            </div>
+        `;
+        listaEventos.appendChild(eventoItem);
+    });
+}
+document.addEventListener("DOMContentLoaded", () => {
+   
+    carregarEventos();
+});
+
+});
+
+
+
+</script>
+<script src="https://apis.google.com/js/api.js"></script>
+
+</body>
+</html>
